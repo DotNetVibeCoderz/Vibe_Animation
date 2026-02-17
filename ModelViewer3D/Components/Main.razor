@@ -1,0 +1,177 @@
+@using System.IO
+@using System
+@inject IJSRuntime JS
+
+<div class="ui-overlay @(IsMenuOpen ? "interactive" : "")">
+    
+    @if (IsMenuOpen)
+    {
+        <div class="menu-modal animate-pop">
+            <h1>ModelViewer3D</h1>
+            <p style="color: #aaa; font-size: 0.9em;">By Jacky The Code Bender (Gravicode Studios)</p>
+            
+            <div style="margin: 20px 0;">
+                <h3>Select Model:</h3>
+                <div class="model-list">
+                    @foreach (var model in Models)
+                    {
+                        <button class="menu-btn" @onclick="() => LoadModel(model)">@Path.GetFileNameWithoutExtension(model)</button>
+                    }
+                    @if (Models.Count == 0)
+                    {
+                        <p>No models found.</p>
+                        <p style="font-size: 0.8em">Adding 'Robot' demo...</p>
+                        <button class="menu-btn" @onclick="LoadDemoModel">Load Demo Robot</button>
+                    }
+                </div>
+                <p style="font-size: 0.7em; color: #888; margin-top: 5px;">
+                    To add models: Place .glb files in <br/> 
+                    <code>wwwroot/assets/models</code> (in build folder or source)
+                </p>
+            </div>
+
+            <button class="menu-btn" @onclick="ToggleAbout">About</button>
+            <button class="menu-btn" @onclick="ExitApp">Exit</button>
+            <button class="menu-btn" style="background: #ff5555; color: white;" @onclick="ToggleMenu">Close Menu</button>
+        </div>
+    }
+    else
+    {
+        <div class="hud">
+            <p><strong>Controls:</strong> W/A/S/D to Move, Mouse to Look</p>
+            <button class="menu-btn" style="width: 150px; padding: 5px;" @onclick="ToggleMenu">Open Menu</button>
+        </div>
+
+        <div class="camera-panel">
+            <h4>Camera Control</h4>
+            <div class="cam-btn-group">
+                <button class="cam-btn" @onclick='() => RotateCamera("up")'>Up</button>
+            </div>
+            <div class="cam-btn-group">
+                <button class="cam-btn" @onclick='() => RotateCamera("left")'>L</button>
+                <button class="cam-btn" @onclick='() => RotateCamera("reset")'>Rst</button>
+                <button class="cam-btn" @onclick='() => RotateCamera("right")'>R</button>
+            </div>
+            <div class="cam-btn-group">
+                <button class="cam-btn" @onclick='() => RotateCamera("down")'>Down</button>
+            </div>
+            <div class="cam-btn-group" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 5px;">
+                <button class="cam-btn" style="width: 60px;" @onclick='() => RotateCamera("in")'>In</button>
+                <button class="cam-btn" style="width: 60px;" @onclick='() => RotateCamera("out")'>Out</button>
+            </div>
+        </div>
+    }
+
+    @if (IsAboutOpen)
+    {
+        <div class="menu-modal" style="z-index: 20;">
+            <h2>About</h2>
+            <p>ModelViewer3D created with WPF + Blazor Hybrid.</p>
+            <p>Powered by Three.js.</p>
+            <p>Features: 3rd Person Camera, Custom GLB Loader.</p>
+            <p>Created by Jacky (Gravicode Studios).</p>
+            <p>Don't forget to traktiran pulsa! ;)</p>
+            <button class="menu-btn" @onclick="ToggleAbout">Close</button>
+        </div>
+    }
+
+    <!-- Background Music -->
+    <audio loop autoplay>
+        <source src="assets/sounds/bgm.mp3" type="audio/mpeg">
+    </audio>
+</div>
+
+@code {
+    private bool IsMenuOpen = true;
+    private bool IsAboutOpen = false;
+    private List<string> Models = new List<string>();
+    private bool gameInitialized = false;
+
+    protected override void OnInitialized()
+    {
+        LoadModelList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(500); 
+            try {
+                await JS.InvokeVoidAsync("window.game.initGame");
+                gameInitialized = true;
+                
+                if (Models.Count == 0)
+                {
+                    await LoadDemoModel();
+                }
+            } catch (Exception ex) {
+                Console.WriteLine("JS Init Error: " + ex.Message);
+            }
+        }
+    }
+
+    private void LoadModelList()
+    {
+        try
+        {
+            string basePath = AppDomain.CurrentDomain.BaseDirectory;
+            string modelPath = Path.Combine(basePath, "wwwroot", "assets", "models");
+            
+            if (Directory.Exists(modelPath))
+            {
+                Models = Directory.GetFiles(modelPath, "*.glb").ToList();
+                Models.AddRange(Directory.GetFiles(modelPath, "*.gltf"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading models: {ex.Message}");
+        }
+    }
+
+    private async Task LoadModel(string fullPath)
+    {
+        if (!gameInitialized) 
+        {
+            await JS.InvokeVoidAsync("window.game.initGame");
+            gameInitialized = true;
+        }
+        
+        string fileName = Path.GetFileName(fullPath);
+        string webPath = $"assets/models/{fileName}";
+        
+        await JS.InvokeVoidAsync("window.game.loadModel", webPath);
+        IsMenuOpen = false;
+    }
+
+    private async Task LoadDemoModel()
+    {
+        string demoUrl = "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.glb";
+        await JS.InvokeVoidAsync("window.game.loadModel", demoUrl);
+        IsMenuOpen = false;
+    }
+
+    private async Task RotateCamera(string direction)
+    {
+        if (gameInitialized)
+        {
+            await JS.InvokeVoidAsync("window.game.orbitCamera", direction);
+        }
+    }
+
+    private void ToggleMenu()
+    {
+        IsMenuOpen = !IsMenuOpen;
+    }
+
+    private void ToggleAbout()
+    {
+        IsAboutOpen = !IsAboutOpen;
+    }
+
+    private void ExitApp()
+    {
+        System.Windows.Application.Current.Shutdown();
+    }
+}
