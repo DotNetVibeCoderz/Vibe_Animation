@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon></ApplicationIcon>
+    <RootNamespace>MatrixAnimation</RootNamespace>
+    <AssemblyName>MatrixAnimation</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>Jacky the Code Bender</Authors>
+    <Product>Matrix Animation</Product>
+    <Description>The best matrix animation screen saver with neon style graphics</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.Views.WindowsForms" Version="3.119.4" />
+  </ItemGroup>
+
+</Project>
